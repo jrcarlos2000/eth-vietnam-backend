@@ -29,7 +29,7 @@ const port = process.env.PORT || 9000;
 
 // parse JSON and others
 
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json());
 
@@ -73,7 +73,6 @@ app.post("/add-facet", async (req : Request, res : Response) => {
     const {name, abi, address, description} = req.body;
     // parse src to abi
     // const abi = JSON.stringify(compileSolidityCode(name,src));
-    console.log(abi)
     const selectorsData = generateSelectorsData(JSON.parse(abi),address,name);
     const timesUsed = 0;
     const audited = false;

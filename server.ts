@@ -70,19 +70,19 @@ app.get("/test", async (req : Request, res : Response)=>{
 app.post("/add-facet", async (req : Request, res : Response) => {
 
   try {
-    const {name, src, address, description} = req.body;
+    const {name, abi, address, description} = req.body;
     // parse src to abi
-    const abi = JSON.stringify(compileSolidityCode(name,src));
-    const selectorsData = generateSelectorsData(abi,address,name);
+    // const abi = JSON.stringify(compileSolidityCode(name,src));
+    console.log(abi)
+    const selectorsData = generateSelectorsData(JSON.parse(abi),address,name);
     const timesUsed = 0;
     const audited = false;
-    
     const db = await connectToDb();
     const exist = await db.collection("facets").findOne({address:
       { $regex: new RegExp("^" + address.toLowerCase(), "i") }})
   
     if(!exist){
-      db.collection("facets").insertOne({name,src,address,description,abi,timesUsed,audited});
+      db.collection("facets").insertOne({name,address,description, abi, timesUsed,audited});
       db.collection("selectors").insertMany(selectorsData);
     }
     res.status(200).end();

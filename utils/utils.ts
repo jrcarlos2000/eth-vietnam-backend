@@ -1,6 +1,10 @@
-import { ethers } from "ethers";
+import { ethers, providers, utils, Wallet } from "ethers";
+import fetch from "node-fetch";
 import { diamondCutABI } from "./abis";
 const solc = require("solc");
+import { MongoClient } from "mongodb";
+
+const START_BLOCK = 29240066;
 
 function getTimestamp() {
   return Math.floor(+new Date() / 1000);
@@ -48,7 +52,6 @@ function compileSolidityCode(name: any, src: any) {
     },
   };
   var output = JSON.parse(solc.compile(JSON.stringify(input)));
-  console.log(output);
   // `output` here contains the JSON output as specified in the documentation
   // for (var contractName in output.contracts['test.sol']) {
   // console.log(
@@ -134,12 +137,30 @@ function get(this: any, funcNames: any) {
   return selectors;
 }
 
-async function buildTxPayload(
+function generateSelectorsData(abi : any, facetAddr : any , facetName : any) {
+    const selectors = getSelectors(abi);
+    const it = (new utils.Interface(abi)).functions;
+    const output = [];
+
+    for ( let f of Object.keys(it)) {
+        output.push({
+            selector : selectors[output.length],
+            functionName : f,
+            facetAddr,
+            facetName
+        })
+    }
+    return output;
+}
+
+function buildTxPayload(
   facetAbi: any,
   facetAddress: any,
-  func: any,
+  funcList: any,
   action: any,
-  diamondAddr: any
+//   diamondAddr: any,
+//   provider :any,
+//   signerProvider : Wallet
 ) {
 
   const data = new ethers.utils.Interface(diamondCutABI).encodeFunctionData(
@@ -147,10 +168,10 @@ async function buildTxPayload(
     [
       [
         {
-          facetAddress: facetAddress,
-          action: action.toLowerCase() == "add" ? 0 : 1,
-          functionSelectors: func
-            ? getSelectors(facetAbi).get([func])
+          facetAddress: action.toLowerCase() == "add" ? facetAddress : ethers.constants.AddressZero,
+          action: action.toLowerCase() == "add" ? 0 : 2,
+          functionSelectors: funcList
+            ? getSelectors(facetAbi).get(funcList)
             : getSelectors(facetAbi),
         },
       ],
@@ -159,8 +180,77 @@ async function buildTxPayload(
     ]
   );
 
-  console.log(data)
+//   const tx = await signerProvider.sendTransaction({
+//     to : diamondAddr,
+//     data
+//   });
+
+//   console.log(tx);
+//   await tx.wait();
+
+    return data
 }
+
+async function parseDiamondCutArgs ( data : any, db : any) {
+
+    let output:any = [];
+    if(data.action == 0) {
+        for(let selector of data.functionSelectors){
+            let entity = await db.collection("selectors").findOne({selector, facetAddr : data.facetAddress })
+            output.push({
+                action : "Add",
+                functionName : entity.functionName,
+                facetAddr : data.facetAddress
+            })
+        }
+    }else if(data.action == 2) {
+        for(let selector of data.functionSelectors){
+            let entity = await db.collection("selectors").findOne({selector})
+            output.push({
+                action : "Remove",
+                functionName : entity.functionName,
+                facetAddr : entity.facetAddress
+            })
+        }
+    }else {
+
+    }
+    return output;
+}
+
+async function getDiamondInfo(diamondAddr : any, provider : providers.JsonRpcProvider) {
+
+    const client = await MongoClient.connect(process.env.DATABASE_URL!,{})
+    const db = client.db("facets");     
+
+    const currBlockNum = await provider.getBlockNumber();
+    const res = await fetch(`https://api-testnet.polygonscan.com/api?module=account&action=txlist&address=${diamondAddr}&startblock=${START_BLOCK}&endblock=${currBlockNum}&page=1&offset=10&sort=asc&apikey=YourApiKeyToken`);
+    const data = (await res.json()).result;
+    let selector = getSelectors(diamondCutABI)[0];
+    // console.log(selector, data);
+    // console.log(selectors)
+    let result = data.filter((item : any) => {
+        return item.input.slice(0,10).toLowerCase() ==  selector.toLowerCase()
+    })
+
+    let it = new utils.Interface(diamondCutABI);
+
+    let output : any = [];
+
+    for(let tx of result) {
+        let receipt = await provider.getTransactionReceipt(tx.hash);
+        let logs = receipt.logs.filter((item : any) => {
+            return item.address.toLowerCase() == diamondAddr.toLowerCase()
+        })
+        for (let log of logs) {
+            output.push(...(await parseDiamondCutArgs(it.parseLog(log).args[0][0],db)));
+        }
+    }
+
+    return output
+    
+}
+
 
 export {
   getTimestamp,
@@ -169,4 +259,6 @@ export {
   compileSolidityCode,
   findTopMatches,
   buildTxPayload,
+  getDiamondInfo,
+  generateSelectorsData
 };

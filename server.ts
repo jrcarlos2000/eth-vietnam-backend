@@ -128,8 +128,8 @@ app.get("/update-diamond", async (req : Request , res: Response) => {
     // const facet = await db.collection("facets").findOne({"_id" : new ObjectId(facetId)})
     const facet = await db.collection("facets").findOne({"address" : facetAddr})
 
-    // const payload = await buildTxPayload(facet.abi,facet.address,funcList,action,diamondAddr,Providers["80001"]);
-    const payload = buildTxPayload(facet.abi,facet.address,funcList,action);
+    const payload = await buildTxPayload(facet.abi,facet.address,funcList,action,diamondAddr,Providers["80001"]);
+    // const payload = buildTxPayload(facet.abi,facet.address,funcList,action);
     res.status(200).send(
       {
         payload

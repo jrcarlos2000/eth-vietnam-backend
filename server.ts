@@ -119,7 +119,7 @@ app.get("/facets", async (req : Request, res: Response) => {
   
 })
 
-app.get("/update-diamond", async (req : Request , res: Response) => {
+app.post("/update-diamond", async (req : Request , res: Response) => {
 
   try {
     const {facetAddr, diamondAddr, action, funcList } = req.body;

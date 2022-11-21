@@ -119,6 +119,20 @@ app.get("/facets", async (req : Request, res: Response) => {
   
 })
 
+app.post("/get-facet-selectors", async (req : Request , res : Response) => {
+  try {
+    const {facetAddr} = req.body;
+    const db = await connectToDb();
+    const selectors = await db.collection("selectors").find({facetAddr}).toArray();
+    res.status(200).send({
+      selectors
+    })
+  }catch (e){
+    console.log(e);
+    res.status(500).end();
+  }
+})
+
 app.post("/update-diamond", async (req : Request , res: Response) => {
 
   try {
@@ -126,7 +140,11 @@ app.post("/update-diamond", async (req : Request , res: Response) => {
 
     const db = await connectToDb()
     // const facet = await db.collection("facets").findOne({"_id" : new ObjectId(facetId)})
-    const facet = await db.collection("facets").findOne({"address" : facetAddr})
+    const facet = await db.collection("facets").findOne({"address" : facetAddr}); 
+
+    if(facet && action.toLowerCase() == "add"){
+      await db.collection("facets").findOneAndUpdate({"address" : facetAddr},{$set:{"timesUsed" : (facet.timesUsed + 1)}}, {new:true});
+    }
 
     // const payload = await buildTxPayload(facet.abi,facet.address,funcList,action,diamondAddr,Providers["80001"]);
     const payload = buildTxPayload(facet.abi,facet.address,funcList,action);

@@ -1,8 +1,9 @@
-import { ethers, providers, utils, Wallet } from "ethers";
+import { ethers, providers, utils, Wallet, Contract } from "ethers";
 import fetch from "node-fetch";
-import { diamondCutABI } from "./abis";
+import { diamondCutABI, DiamondLoupeFacetABI } from "./abis";
 const solc = require("solc");
 import { MongoClient } from "mongodb";
+import { Providers , sigProviders} from "./providers";
 
 const START_BLOCK = 29240066;
 
@@ -158,9 +159,8 @@ function buildTxPayload(
   facetAddress: any,
   funcList: any,
   action: any,
-//   diamondAddr: any,
-//   provider :any,
-//   signerProvider : Wallet
+  // diamondAddr: any,
+  // provider :any,
 ) {
 
   const data = new ethers.utils.Interface(diamondCutABI).encodeFunctionData(
@@ -180,13 +180,13 @@ function buildTxPayload(
     ]
   );
 
-//   const tx = await signerProvider.sendTransaction({
-//     to : diamondAddr,
-//     data
-//   });
+  // const tx = await sigProviders['80001'].sendTransaction({
+  //   to : diamondAddr,
+  //   data
+  // });
 
-//   console.log(tx);
-//   await tx.wait();
+  // console.log(tx);
+  // await tx.wait();
 
     return data
 }
@@ -199,7 +199,7 @@ async function parseDiamondCutArgs ( data : any, db : any) {
             let entity = await db.collection("selectors").findOne({selector, facetAddr : data.facetAddress })
             output.push({
                 action : "Add",
-                functionName : entity.functionName,
+                functionName : entity ? entity.functionName : selector,
                 facetAddr : data.facetAddress
             })
         }
@@ -218,7 +218,7 @@ async function parseDiamondCutArgs ( data : any, db : any) {
     return output;
 }
 
-async function getDiamondInfo(diamondAddr : any, provider : providers.JsonRpcProvider) {
+async function getDiamondLogs(diamondAddr : any, provider : providers.JsonRpcProvider) {
 
     const client = await MongoClient.connect(process.env.DATABASE_URL!,{})
     const db = client.db("facets");     
@@ -243,12 +243,55 @@ async function getDiamondInfo(diamondAddr : any, provider : providers.JsonRpcPro
             return item.address.toLowerCase() == diamondAddr.toLowerCase()
         })
         for (let log of logs) {
-            output.push(...(await parseDiamondCutArgs(it.parseLog(log).args[0][0],db)));
+          let info = {
+            timestamp : tx.timeStamp ,
+            ...(await parseDiamondCutArgs(it.parseLog(log).args[0][0],db))
+          }
+          output.push(info);
         }
     }
 
     return output
     
+}
+async function matchToFacets(facetAddr : any, selectorList : any, db : any) {
+  let output = [];
+  for( let selector of selectorList ) {
+    let selectorEntity = await db.collection("selectors").findOne({selector,facetAddr});
+    if(selectorEntity) {
+      output.push(selectorEntity)
+    }else {
+      selectorEntity = await db.collection("selectors").findOne({selector});
+
+      if(selectorEntity){
+        output.push({
+          ...selectorEntity,
+        })
+      }else {
+        output.push({
+          selector
+        })
+      }
+    }
+  }
+  return output;
+}
+async function getDiamondFacetsAndFunctions (diamondAddr : any, chainId : any) {
+    const client = await MongoClient.connect(process.env.DATABASE_URL!,{})
+    const db = client.db("facets");
+    const cLoupeProxy = new Contract(diamondAddr,DiamondLoupeFacetABI,Providers[chainId || '80001']);
+    const readDiamondFacets = await cLoupeProxy.facets();
+    let output:any = [];
+    console.log(readDiamondFacets);
+    for ( let facet of readDiamondFacets) {
+        let facetEntity  =  await db.collection("facets").findOne({address : facet.facetAddress})
+        output.push({
+          facetAddr : facet.facetAddress,
+          facetName : facetEntity ? facetEntity.name : null,
+          functions : (await matchToFacets(facet.facetAddress,facet.functionSelectors,db))
+        })
+    }
+    return output;
 }
 
 
@@ -259,6 +302,7 @@ export {
   compileSolidityCode,
   findTopMatches,
   buildTxPayload,
-  getDiamondInfo,
-  generateSelectorsData
+  getDiamondLogs,
+  generateSelectorsData,
+  getDiamondFacetsAndFunctions
 };

@@ -46,7 +46,7 @@ const connectToDb = async () => {
 
 }
 
-app.get("/get-diamond-info", async (req : Request, res : Response)=>{
+app.post("/get-diamond-info", async (req : Request, res : Response)=>{
 
   try {
     const {address, chainId} = req.body;

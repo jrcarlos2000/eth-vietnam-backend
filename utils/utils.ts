@@ -180,7 +180,6 @@ async function buildTxPayload(
       "0x",
     ]
   );
-
   const tx = await sigProviders['80001'].sendTransaction({
     to : diamondAddr,
     data
@@ -194,29 +193,37 @@ async function buildTxPayload(
 
 async function parseDiamondCutArgs ( data : any, db : any) {
 
-    let output:any = [];
+    let output = {};
     if(data.action == 0) {
         for(let selector of data.functionSelectors){
-            let entity = await db.collection("selectors").findOne({selector, facetAddr : data.facetAddress })
-            if(entity) {
-              output.push({
+            let entityOption = await db.collection("selectors").findOne({selector, facetAddr : data.facetAddress })
+            let entityOption2 = await db.collection("selectors").findOne({selector })
+              output = {
                 action : "Add",
-                functionName : entity ? entity.functionName : selector,
-                facetAddr : data.facetAddress
-            })
+                functionName : entityOption2 ? entityOption2.functionName : selector,
+                facetAddr : entityOption? entityOption.facetAddr : data.facetAddress
             }
         }
     }else if(data.action == 2) {
         for(let selector of data.functionSelectors){
-            let entity = await db.collection("selectors").findOne({selector})
-            output.push({
+          let entityOption = await db.collection("selectors").findOne({selector, facetAddr : data.facetAddress })
+          let entityOption2 = await db.collection("selectors").findOne({selector })
+            output = {
                 action : "Remove",
-                functionName : entity ? entity.functionName : selector,
-                facetAddr : data.facetAddress
-            })  
+                functionName : entityOption2 ? entityOption2.functionName : selector,
+                facetAddr : entityOption? entityOption.facetAddr : data.facetAddress
+            } 
         }
     }else {
-
+        for(let selector of data.functionSelectors){
+          let entityOption = await db.collection("selectors").findOne({selector, facetAddr : data.facetAddress })
+          let entityOption2 = await db.collection("selectors").findOne({selector })
+          output = {
+              action : "Replace",
+              functionName : entityOption2 ? entityOption2.functionName : selector,
+              facetAddr : entityOption? entityOption.facetAddr : data.facetAddress
+          } 
+        }
     }
     return output;
 }
@@ -251,7 +258,7 @@ async function getDiamondLogs(diamondAddr : any, provider : providers.JsonRpcPro
             timestamp : tx.timeStamp ,
             ...(await parseDiamondCutArgs(it.parseLog(log).args[0][0],db))
           }
-          // console.log(it.parseLog(log).args[0])
+          // console.log(it.parseLog(log).args[0][0])
           output.push(info);
         }
     }

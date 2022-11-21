@@ -6,6 +6,7 @@ import { MongoClient } from "mongodb";
 import { Providers , sigProviders} from "./providers";
 
 const START_BLOCK = 29240066;
+const UPDATETOPIC = "0x8faa70878671ccd212d20771b795c50af8fd3ff6cf27f4bde57e5d4de0aeb673";
 
 function getTimestamp() {
   return Math.floor(+new Date() / 1000);
@@ -197,20 +198,22 @@ async function parseDiamondCutArgs ( data : any, db : any) {
     if(data.action == 0) {
         for(let selector of data.functionSelectors){
             let entity = await db.collection("selectors").findOne({selector, facetAddr : data.facetAddress })
-            output.push({
+            if(entity) {
+              output.push({
                 action : "Add",
                 functionName : entity ? entity.functionName : selector,
                 facetAddr : data.facetAddress
             })
+            }
         }
     }else if(data.action == 2) {
         for(let selector of data.functionSelectors){
             let entity = await db.collection("selectors").findOne({selector})
             output.push({
                 action : "Remove",
-                functionName : entity.functionName,
-                facetAddr : entity.facetAddress
-            })
+                functionName : entity ? entity.functionName : selector,
+                facetAddr : data.facetAddress
+            })  
         }
     }else {
 
@@ -242,11 +245,13 @@ async function getDiamondLogs(diamondAddr : any, provider : providers.JsonRpcPro
         let logs = receipt.logs.filter((item : any) => {
             return item.address.toLowerCase() == diamondAddr.toLowerCase()
         })
+        
         for (let log of logs) {
           let info = {
             timestamp : tx.timeStamp ,
             ...(await parseDiamondCutArgs(it.parseLog(log).args[0][0],db))
           }
+          // console.log(it.parseLog(log).args[0])
           output.push(info);
         }
     }
@@ -287,7 +292,7 @@ async function getDiamondFacetsAndFunctions (diamondAddr : any, chainId : any) {
         let facetEntity  =  await db.collection("facets").findOne({address : facet.facetAddress})
         output.push({
           facetAddr : facet.facetAddress,
-          facetName : facetEntity ? facetEntity.name : null,
+          facetName : facetEntity ? facetEntity.name : "noName",
           functions : (await matchToFacets(facet.facetAddress,facet.functionSelectors,db))
         })
     }

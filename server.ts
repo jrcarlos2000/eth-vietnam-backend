@@ -47,14 +47,21 @@ const connectToDb = async () => {
 }
 
 app.get("/get-diamond-info", async (req : Request, res : Response)=>{
-  const {address, chainId} = req.body;
-  const db = await connectToDb();
-  const history = await getDiamondLogs(address, chainId ? Providers[chainId] : Providers["80001"]);
-  const facets = await getDiamondFacetsAndFunctions(address, chainId);
-  res.status(200).send({
-    facets,
-    history
-  })
+
+  try {
+    const {address, chainId} = req.body;
+    const db = await connectToDb();
+    const history = await getDiamondLogs(address, chainId ? Providers[chainId] : Providers["80001"]);
+    const facets = await getDiamondFacetsAndFunctions(address, chainId);
+    res.status(200).send({
+      facets,
+      history
+    })
+  } catch (e) {
+    console.log(e);
+    res.status(500).end()
+  }
+
 })
 
 

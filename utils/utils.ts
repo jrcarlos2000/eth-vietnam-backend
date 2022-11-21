@@ -155,13 +155,13 @@ function generateSelectorsData(abi : any, facetAddr : any , facetName : any) {
     return output;
 }
 
-async function buildTxPayload(
+function buildTxPayload(
   facetAbi: any,
   facetAddress: any,
   funcList: any,
   action: any,
-  diamondAddr: any,
-  provider :any,
+  // diamondAddr: any,
+  // provider :any,
 ) {
 
   const data = new ethers.utils.Interface(diamondCutABI).encodeFunctionData(
@@ -180,13 +180,13 @@ async function buildTxPayload(
       "0x",
     ]
   );
-  const tx = await sigProviders['80001'].sendTransaction({
-    to : diamondAddr,
-    data
-  });
+  // const tx = await sigProviders['80001'].sendTransaction({
+  //   to : diamondAddr,
+  //   data
+  // });
 
-  console.log(tx);
-  await tx.wait();
+  // console.log(tx);
+  // await tx.wait();
 
     return data
 }

@@ -52,28 +52,28 @@ const connectToDb = async () => {
 
 let busy = false;
 
-cron.schedule("*/10 * * * *", async () => {
-  if (!busy) {
-    console.log("running a task every 4 minutes");
-    const promises = [];
-    let carlosProject =
-      "31556536068966722363894942166445242044853890205071455818804539576329206412274";
-    let ccProject =
-      "41935440756748296837918508077439478282421098506613731598470076735439872857126";
+// cron.schedule("*/10 * * * *", async () => {
+//   if (!busy) {
+//     console.log("running a task every 4 minutes");
+//     const promises = [];
+//     let carlosProject =
+//       "31556536068966722363894942166445242044853890205071455818804539576329206412274";
+//     let ccProject =
+//       "41935440756748296837918508077439478282421098506613731598470076735439872857126";
 
-    for (let i = 0; i < 5; i++) {
-      promises.push(
-        hackDoraHacks([carlosProject, ccProject], sigProviders["80001"][i])
-      );
-    }
-    busy = true;
-    const results = await Promise.allSettled(promises);
-    busy = false;
-    console.log(results);
-  }else {
-    console.log("busy");
-  }
-});
+//     for (let i = 0; i < 5; i++) {
+//       promises.push(
+//         hackDoraHacks([carlosProject, ccProject], sigProviders["80001"][i])
+//       );
+//     }
+//     busy = true;
+//     const results = await Promise.allSettled(promises);
+//     busy = false;
+//     console.log(results);
+//   }else {
+//     console.log("busy");
+//   }
+// });
 
 // app.get("/", async (req : Request , res : Response)=> {
 //     // const {times} = req.body;

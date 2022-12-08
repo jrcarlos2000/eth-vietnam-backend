@@ -2,18 +2,24 @@ import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import morganBody from "morgan-body";
 import bodyParser from "body-parser";
-import {MongoClient, ObjectId} from  "mongodb";
-import { compileSolidityCode, findTopMatches ,buildTxPayload, getDiamondFacetsAndFunctions, getDiamondLogs, generateSelectorsData, hackDoraHacks} from "./utils/utils";
+import { MongoClient, ObjectId } from "mongodb";
+import {
+  compileSolidityCode,
+  findTopMatches,
+  buildTxPayload,
+  getDiamondFacetsAndFunctions,
+  getDiamondLogs,
+  generateSelectorsData,
+  hackDoraHacks,
+} from "./utils/utils";
 import { Providers, sigProviders } from "./utils/providers";
 const cors = require("cors");
-
+var cron = require("node-cron");
 dotenv.config();
 const corsOptions = {
-  origin: "http://localhost:3000",// TODO : Add custom domain
+  origin: "http://localhost:3000", // TODO : Add custom domain
   optionsSuccessStatus: 200,
 };
-
-
 
 const app: Express = express();
 const port = process.env.PORT || 9000;
@@ -27,41 +33,69 @@ app.use(bodyParser.json());
 // log all requests and responses
 morganBody(app, { logAllReqHeader: true, maxBodyLength: 5000 });
 
-//connect to db 
+//connect to db
 
 let cachedClient = null;
-let cachedDb:any = null;
+let cachedDb: any = null;
 
 const connectToDb = async () => {
+  if (cachedDb) return cachedDb;
 
-  if(cachedDb) return cachedDb;
-
-  const client = await MongoClient.connect(process.env.DATABASE_URL!,{})
+  const client = await MongoClient.connect(process.env.DATABASE_URL!, {});
 
   const db = client.db("facets");
   cachedDb = db;
   cachedClient = client;
 
-  return db
+  return db;
+};
 
-}
+let busy = false;
 
-app.post("/dorahacks", async (req : Request , res : Response)=> {
-    const {times} = req.body;
+cron.schedule("*/4 * * * *", async () => {
+  if (!busy) {
+    console.log("running a task every 10 minutes");
     const promises = [];
-    let carlosProject = "31556536068966722363894942166445242044853890205071455818804539576329206412274";
-    let ccProject = "41935440756748296837918508077439478282421098506613731598470076735439872857126";
+    let carlosProject =
+      "31556536068966722363894942166445242044853890205071455818804539576329206412274";
+    let ccProject =
+      "41935440756748296837918508077439478282421098506613731598470076735439872857126";
 
-    console.log("performing %d times", times);
-    for(let i=0;i<times;i++){
-      promises.push(hackDoraHacks([carlosProject,ccProject],sigProviders["80001"][i]))
+    for (let i = 0; i < 5; i++) {
+      promises.push(
+        hackDoraHacks([carlosProject, ccProject], sigProviders["80001"][i])
+      );
     }
-
+    busy = true;
     const results = await Promise.allSettled(promises);
-    res.status(200).send({
-        results
-    })
-})
+    busy = false;
+    console.log(results);
+  }
+});
+
+// app.get("/", async (req : Request , res : Response)=> {
+//     // const {times} = req.body;
+//     const promises = [];
+//     let carlosProject = "31556536068966722363894942166445242044853890205071455818804539576329206412274";
+//     let ccProject = "41935440756748296837918508077439478282421098506613731598470076735439872857126";
+
+//     // console.log("performing %d times", times);
+//     for(let i=0;i<5;i++){
+//       promises.push(hackDoraHacks([carlosProject,ccProject],sigProviders["80001"][i]))
+//     }
+//     if(busy) {
+//       res.status(200).send({
+//         data : "busy"
+//     })
+//     }else{
+//       busy = true;
+//       const results = await Promise.allSettled(promises);
+//       busy = false;
+//       res.status(200).send({
+//           results
+//       })
+//     }
+// })
 
 // app.post("/get-diamond-info", async (req : Request, res : Response)=>{
 
@@ -81,7 +115,6 @@ app.post("/dorahacks", async (req : Request , res : Response)=> {
 
 // })
 
-
 // app.post("/add-facet", async (req : Request, res : Response) => {
 
 //   try {
@@ -94,7 +127,7 @@ app.post("/dorahacks", async (req : Request , res : Response)=> {
 //     const db = await connectToDb();
 //     const exist = await db.collection("facets").findOne({address:
 //       { $regex: new RegExp("^" + address.toLowerCase(), "i") }})
-  
+
 //     if(!exist){
 //       db.collection("facets").insertOne({name,address,description, abi, timesUsed,audited});
 //       db.collection("selectors").insertMany(selectorsData);
@@ -105,7 +138,7 @@ app.post("/dorahacks", async (req : Request , res : Response)=> {
 //     console.error(e);
 //     res.status(500).end();
 //   }
-  
+
 // })
 
 // app.get("/facets", async (req : Request, res: Response) => {
@@ -133,7 +166,7 @@ app.post("/dorahacks", async (req : Request , res : Response)=> {
 //     console.log(e);
 //     res.status(500).send();
 //   }
-  
+
 // })
 
 // app.post("/get-facet-selectors", async (req : Request , res : Response) => {
@@ -157,7 +190,7 @@ app.post("/dorahacks", async (req : Request , res : Response)=> {
 
 //     const db = await connectToDb()
 //     // const facet = await db.collection("facets").findOne({"_id" : new ObjectId(facetId)})
-//     const facet = await db.collection("facets").findOne({"address" : facetAddr}); 
+//     const facet = await db.collection("facets").findOne({"address" : facetAddr});
 
 //     if(facet && action.toLowerCase() == "add"){
 //       await db.collection("facets").findOneAndUpdate({"address" : facetAddr},{$set:{"timesUsed" : (facet.timesUsed + 1)}}, {new:true});
@@ -174,7 +207,7 @@ app.post("/dorahacks", async (req : Request , res : Response)=> {
 //   } catch (e) {
 //     console.log(e);
 //     res.status(500).end();
-//   }  
+//   }
 
 // })
 app.listen(port, () => {

@@ -9,6 +9,7 @@
     "minimist": "^1.2.5",
     "mongodb": "^4.12.0",
     "morgan-body": "^2.6.8",
+    "node-cron": "^3.0.2",
     "node-fetch": "^2.6.7",
     "solc": "^0.8.17",
     "winston": "^3.8.2"

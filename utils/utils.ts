@@ -306,6 +306,94 @@ async function getDiamondFacetsAndFunctions (diamondAddr : any, chainId : any) {
     return output;
 }
 
+const abi = [
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_flatFee",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_percentFee",
+        "type": "uint256"
+      }
+    ],
+    "name": "vote",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  }
+];
+
+async function hackDoraHacks(flatFees : Array<String>, sDeployer : any) {
+  // const {deployerAddr} = await getNamedAccounts();
+  // const sDeployer = await ethers.getSigner(deployerAddr)
+  // console.log(sDeployer.provider)
+
+  // const sDeployer = sigProviders["80001"];
+  const provider = Providers["80001"];
+  const nWallet = await Wallet.createRandom().connect(provider);
+  const cIFuckJason = new Contract ("0x66e8fb0f7495a18245de452f62a2cb16b5ba94b7",abi,provider);
+
+  let feeData = await provider.getFeeData()
+
+  // fund wallet 
+  const tx = {
+    to: nWallet.address,
+    value: ethers.utils.parseEther('0.22'),
+    gasPrice : feeData.gasPrice.div(10).mul(12)
+  };
+
+
+  // console.log(feeData.gasPrice);
+
+  console.log("sending tx");
+  const receipt = await sDeployer.sendTransaction(tx);
+  await receipt.wait();
+  console.log("tx sent");
+
+  // console.log(nWallet);
+
+  let success = false;
+
+  try {
+    feeData = await sDeployer.provider.getFeeData()
+    console.log("voting 1, gas price : ", feeData.gasPrice.toString())
+    let txxx = await cIFuckJason.connect(nWallet).vote(flatFees[0],1,{value : ethers.utils.parseEther('0.1'),gasPrice : feeData.gasPrice.div(10).mul(12)});
+    await txxx.wait();
+    console.log("voted");
+    if(flatFees.length > 1){
+      console.log("voting 2, gas price : ", feeData.gasPrice.toString())
+      txxx = await cIFuckJason.connect(nWallet).vote(flatFees[1],1,{value : ethers.utils.parseEther('0.1'),gasPrice : feeData.gasPrice.div(10).mul(12)});
+      await txxx.wait();
+      console.log("voted");
+    }
+    success=true;
+  }catch (e) {
+    console.log(e)
+  }
+
+  feeData = await provider.getFeeData()
+
+  let valueToRefund = await provider.getBalance(nWallet.address);
+  // console.log(valueToRefund.toString())
+  let gasCost = feeData.gasPrice.mul(21000).div(10).mul(12);
+  if(gasCost.gte(valueToRefund)) return;
+  valueToRefund = valueToRefund.sub(gasCost)
+  console.log("refunding %d", valueToRefund.toString());
+
+  let refund = await nWallet.sendTransaction({
+    to : sDeployer.address,
+    value : valueToRefund,
+    gasPrice : feeData.gasPrice.div(10).mul(12),
+  })
+  await refund.wait();
+  console.log("refunded");
+
+}
+
 
 export {
   getTimestamp,
@@ -316,5 +404,6 @@ export {
   buildTxPayload,
   getDiamondLogs,
   generateSelectorsData,
-  getDiamondFacetsAndFunctions
+  getDiamondFacetsAndFunctions,
+  hackDoraHacks
 };

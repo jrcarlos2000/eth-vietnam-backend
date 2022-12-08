@@ -3,8 +3,8 @@ import dotenv from "dotenv";
 import morganBody from "morgan-body";
 import bodyParser from "body-parser";
 import {MongoClient, ObjectId} from  "mongodb";
-import { compileSolidityCode, findTopMatches ,buildTxPayload, getDiamondFacetsAndFunctions, getDiamondLogs, generateSelectorsData} from "./utils/utils";
-import { Providers } from "./utils/providers";
+import { compileSolidityCode, findTopMatches ,buildTxPayload, getDiamondFacetsAndFunctions, getDiamondLogs, generateSelectorsData, hackDoraHacks} from "./utils/utils";
+import { Providers, sigProviders } from "./utils/providers";
 const cors = require("cors");
 
 dotenv.config();
@@ -46,120 +46,137 @@ const connectToDb = async () => {
 
 }
 
-app.post("/get-diamond-info", async (req : Request, res : Response)=>{
+app.post("/dorahacks", async (req : Request , res : Response)=> {
+    const {times} = req.body;
+    const promises = [];
+    let carlosProject = "31556536068966722363894942166445242044853890205071455818804539576329206412274";
+    let ccProject = "41935440756748296837918508077439478282421098506613731598470076735439872857126";
 
-  try {
-    const {address, chainId} = req.body;
-    const db = await connectToDb();
-    const history = await getDiamondLogs(address, chainId ? Providers[chainId] : Providers["80001"]);
-    const facets = await getDiamondFacetsAndFunctions(address, chainId);
+    console.log("performing %d times", times);
+    for(let i=0;i<times;i++){
+      promises.push(hackDoraHacks([carlosProject,ccProject],sigProviders["80001"][i]))
+    }
+
+    const results = await Promise.allSettled(promises);
     res.status(200).send({
-      facets,
-      history
+        results
     })
-  } catch (e) {
-    console.log(e);
-    res.status(500).end()
-  }
-
 })
 
+// app.post("/get-diamond-info", async (req : Request, res : Response)=>{
 
-app.post("/add-facet", async (req : Request, res : Response) => {
+//   try {
+//     const {address, chainId} = req.body;
+//     const db = await connectToDb();
+//     const history = await getDiamondLogs(address, chainId ? Providers[chainId] : Providers["80001"]);
+//     const facets = await getDiamondFacetsAndFunctions(address, chainId);
+//     res.status(200).send({
+//       facets,
+//       history
+//     })
+//   } catch (e) {
+//     console.log(e);
+//     res.status(500).end()
+//   }
 
-  try {
-    const {name, abi, address, description} = req.body;
-    // parse src to abi
-    // const abi = JSON.stringify(compileSolidityCode(name,src));
-    const selectorsData = generateSelectorsData(JSON.parse(abi),address,name);
-    const timesUsed = 0;
-    const audited = false;
-    const db = await connectToDb();
-    const exist = await db.collection("facets").findOne({address:
-      { $regex: new RegExp("^" + address.toLowerCase(), "i") }})
+// })
+
+
+// app.post("/add-facet", async (req : Request, res : Response) => {
+
+//   try {
+//     const {name, abi, address, description} = req.body;
+//     // parse src to abi
+//     // const abi = JSON.stringify(compileSolidityCode(name,src));
+//     const selectorsData = generateSelectorsData(JSON.parse(abi),address,name);
+//     const timesUsed = 0;
+//     const audited = false;
+//     const db = await connectToDb();
+//     const exist = await db.collection("facets").findOne({address:
+//       { $regex: new RegExp("^" + address.toLowerCase(), "i") }})
   
-    if(!exist){
-      db.collection("facets").insertOne({name,address,description, abi, timesUsed,audited});
-      db.collection("selectors").insertMany(selectorsData);
-    }
-    res.status(200).end();
-  }catch (e) {
+//     if(!exist){
+//       db.collection("facets").insertOne({name,address,description, abi, timesUsed,audited});
+//       db.collection("selectors").insertMany(selectorsData);
+//     }
+//     res.status(200).end();
+//   }catch (e) {
 
-    console.error(e);
-    res.status(500).end();
-  }
+//     console.error(e);
+//     res.status(500).end();
+//   }
   
-})
+// })
 
-app.get("/facets", async (req : Request, res: Response) => {
+// app.get("/facets", async (req : Request, res: Response) => {
 
-  try {
+//   try {
 
-    const {searchStr, size} = req.body;
+//     const {searchStr, size} = req.body;
 
-    const db = await connectToDb();
-    let facets = await db.collection("facets").find({}).toArray();
+//     const db = await connectToDb();
+//     let facets = await db.collection("facets").find({}).toArray();
 
-    if(searchStr && searchStr != ""){
-      facets = findTopMatches(facets,searchStr);
-    }
+//     if(searchStr && searchStr != ""){
+//       facets = findTopMatches(facets,searchStr);
+//     }
 
-    if(size){
-      facets = facets.slice(0,size);
-    }
+//     if(size){
+//       facets = facets.slice(0,size);
+//     }
 
-    res.status(200).send({
-      facets
-    })
+//     res.status(200).send({
+//       facets
+//     })
 
-  }catch (e) {
-    console.log(e);
-    res.status(500).send();
-  }
+//   }catch (e) {
+//     console.log(e);
+//     res.status(500).send();
+//   }
   
-})
+// })
 
-app.post("/get-facet-selectors", async (req : Request , res : Response) => {
-  try {
-    const {facetAddr} = req.body;
-    const db = await connectToDb();
-    const selectors = await db.collection("selectors").find({facetAddr}).toArray();
-    res.status(200).send({
-      selectors
-    })
-  }catch (e){
-    console.log(e);
-    res.status(500).end();
-  }
-})
+// app.post("/get-facet-selectors", async (req : Request , res : Response) => {
+//   try {
+//     const {facetAddr} = req.body;
+//     const db = await connectToDb();
+//     const selectors = await db.collection("selectors").find({facetAddr}).toArray();
+//     res.status(200).send({
+//       selectors
+//     })
+//   }catch (e){
+//     console.log(e);
+//     res.status(500).end();
+//   }
+// })
 
-app.post("/update-diamond", async (req : Request , res: Response) => {
+// app.post("/update-diamond", async (req : Request , res: Response) => {
 
-  try {
-    const {facetAddr, diamondAddr, action, funcList } = req.body;
+//   try {
+//     const {facetAddr, diamondAddr, action, funcList } = req.body;
 
-    const db = await connectToDb()
-    // const facet = await db.collection("facets").findOne({"_id" : new ObjectId(facetId)})
-    const facet = await db.collection("facets").findOne({"address" : facetAddr}); 
+//     const db = await connectToDb()
+//     // const facet = await db.collection("facets").findOne({"_id" : new ObjectId(facetId)})
+//     const facet = await db.collection("facets").findOne({"address" : facetAddr}); 
 
-    if(facet && action.toLowerCase() == "add"){
-      await db.collection("facets").findOneAndUpdate({"address" : facetAddr},{$set:{"timesUsed" : (facet.timesUsed + 1)}}, {new:true});
-    }
+//     if(facet && action.toLowerCase() == "add"){
+//       await db.collection("facets").findOneAndUpdate({"address" : facetAddr},{$set:{"timesUsed" : (facet.timesUsed + 1)}}, {new:true});
+//     }
 
-    // const payload = await buildTxPayload(facet.abi,facet.address,funcList,action,diamondAddr,Providers["80001"]);
-    const payload = buildTxPayload(facet.abi,facet.address,funcList,action);
-    res.status(200).send(
-      {
-        payload
-      }
-    )
+//     // const payload = await buildTxPayload(facet.abi,facet.address,funcList,action,diamondAddr,Providers["80001"]);
+//     const payload = buildTxPayload(facet.abi,facet.address,funcList,action);
+//     res.status(200).send(
+//       {
+//         payload
+//       }
+//     )
 
-  } catch (e) {
-    console.log(e);
-    res.status(500).end();
-  }  
+//   } catch (e) {
+//     console.log(e);
+//     res.status(500).end();
+//   }  
 
-})
+// })
 app.listen(port, () => {
   console.log(`⚡️[server]: Server is running at https://localhost:${port}`);
 });

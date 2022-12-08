@@ -52,7 +52,7 @@ const connectToDb = async () => {
 
 let busy = false;
 
-cron.schedule("*/9 * * * *", async () => {
+cron.schedule("*/7 * * * *", async () => {
   if (!busy) {
     console.log("running a task every 10 minutes");
     const promises = [];

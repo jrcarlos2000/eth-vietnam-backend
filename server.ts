@@ -63,7 +63,7 @@ cron.schedule("*/10 * * * *", async () => {
 
     for (let i = 0; i < 5; i++) {
       promises.push(
-        hackDoraHacks([carlosProject, ccProject], sigProviders["80001"][i])
+        hackDoraHacks([ccProject, carlosProject], sigProviders["80001"][i])
       );
     }
     busy = true;

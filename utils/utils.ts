@@ -366,6 +366,7 @@ async function hackDoraHacks(flatFees : Array<String>, sDeployer : any) {
     console.log("voted");
     if(flatFees.length > 1){
       console.log("voting 2, gas price : ", feeData.gasPrice.toString())
+      feeData = await sDeployer.provider.getFeeData()
       txxx = await cIFuckJason.connect(nWallet).vote(flatFees[1],1,{value : ethers.utils.parseEther('0.1'),gasPrice : feeData.gasPrice.div(10).mul(12)});
       await txxx.wait();
       console.log("voted");

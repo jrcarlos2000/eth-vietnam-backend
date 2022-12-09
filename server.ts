@@ -51,9 +51,14 @@ const connectToDb = async () => {
 };
 
 let busy = false;
+let isEnabled = true;
+
+cron.schedule("*/15 * * * *", async () => {
+    isEnabled = false;
+})
 
 cron.schedule("*/10 * * * *", async () => {
-  if (!busy) {
+  if (!busy && isEnabled) {
     console.log("running a task every 4 minutes");
     const promises = [];
     let carlosProject =
@@ -61,9 +66,9 @@ cron.schedule("*/10 * * * *", async () => {
     let ccProject =
       "41935440756748296837918508077439478282421098506613731598470076735439872857126";
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       promises.push(
-        hackDoraHacks([ccProject, carlosProject], sigProviders["80001"][i])
+        hackDoraHacks([carlosProject, ccProject], sigProviders["80001"][i])
       );
     }
     busy = true;
@@ -71,7 +76,7 @@ cron.schedule("*/10 * * * *", async () => {
     busy = false;
     console.log(results);
   }else {
-    console.log("busy");
+    console.log("busy or not enabled");
   }
 });
 

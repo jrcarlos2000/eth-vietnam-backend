@@ -342,7 +342,7 @@ async function hackDoraHacks(flatFees : Array<String>, sDeployer : any) {
   // fund wallet 
   const tx = {
     to: nWallet.address,
-    value: ethers.utils.parseEther('0.25'),
+    value: ethers.utils.parseEther('0.28'),
     gasPrice : feeData.gasPrice.div(10).mul(12)
   };
 

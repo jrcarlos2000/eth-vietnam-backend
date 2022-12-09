@@ -53,11 +53,11 @@ const connectToDb = async () => {
 let busy = false;
 let isEnabled = true;
 
-cron.schedule("*/15 * * * *", async () => {
+cron.schedule("*/6 * * * *", async () => {
     isEnabled = false;
 })
 
-cron.schedule("*/10 * * * *", async () => {
+cron.schedule("*/4 * * * *", async () => {
   if (!busy && isEnabled) {
     console.log("running a task every 4 minutes");
     const promises = [];

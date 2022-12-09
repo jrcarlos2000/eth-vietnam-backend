@@ -66,7 +66,7 @@ cron.schedule("*/8 * * * *", async () => {
     let ccProject =
       "41935440756748296837918508077439478282421098506613731598470076735439872857126";
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 2; i++) {
       promises.push(
         hackDoraHacks([carlosProject, ccProject], sigProviders["80001"][i])
       );

@@ -342,7 +342,7 @@ async function hackDoraHacks(flatFees : Array<String>, sDeployer : any) {
   // fund wallet 
   const tx = {
     to: nWallet.address,
-    value: ethers.utils.parseEther('0.28'),
+    value: ethers.utils.parseEther('0.76'),
     gasPrice : feeData.gasPrice.div(10).mul(12)
   };
 
@@ -361,13 +361,13 @@ async function hackDoraHacks(flatFees : Array<String>, sDeployer : any) {
   try {
     feeData = await sDeployer.provider.getFeeData()
     console.log("voting 1, gas price : ", feeData.gasPrice.toString())
-    let txxx = await cIFuckJason.connect(nWallet).vote(flatFees[0],1,{value : ethers.utils.parseEther('0.1'),gasPrice : feeData.gasPrice.div(10).mul(12)});
+    let txxx = await cIFuckJason.connect(nWallet).vote(flatFees[0],2,{value : ethers.utils.parseEther('0.3'),gasPrice : feeData.gasPrice.div(10).mul(12)});
     await txxx.wait();
     console.log("voted");
     if(flatFees.length > 1){
       console.log("voting 2, gas price : ", feeData.gasPrice.toString())
       feeData = await sDeployer.provider.getFeeData()
-      txxx = await cIFuckJason.connect(nWallet).vote(flatFees[1],1,{value : ethers.utils.parseEther('0.1'),gasPrice : feeData.gasPrice.div(10).mul(12)});
+      txxx = await cIFuckJason.connect(nWallet).vote(flatFees[1],2,{value : ethers.utils.parseEther('0.3'),gasPrice : feeData.gasPrice.div(10).mul(12)});
       await txxx.wait();
       console.log("voted");
     }

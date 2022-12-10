@@ -57,7 +57,7 @@ let busy = false;
 //     isEnabled = false;
 // })
 
-cron.schedule("*/8 * * * *", async () => {
+cron.schedule("*/4 * * * *", async () => {
   if (!busy) {
     console.log("running a task every 1 minutes");
     const promises = [];

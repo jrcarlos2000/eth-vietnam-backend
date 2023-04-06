@@ -5,9 +5,6 @@ const solc = require("solc");
 import { MongoClient } from "mongodb";
 import { Providers , sigProviders} from "./providers";
 
-const START_BLOCK = 29240066;
-const UPDATETOPIC = "0x8faa70878671ccd212d20771b795c50af8fd3ff6cf27f4bde57e5d4de0aeb673";
-
 function getTimestamp() {
   return Math.floor(+new Date() / 1000);
 }
@@ -228,44 +225,45 @@ async function parseDiamondCutArgs ( data : any, db : any) {
     return output;
 }
 
-async function getDiamondLogs(diamondAddr : any, provider : providers.JsonRpcProvider) {
+// async function getDiamondLogs(diamondAddr : any, provider : providers.JsonRpcProvider) {
 
-    const client = await MongoClient.connect(process.env.DATABASE_URL!,{})
-    const db = client.db("facets");     
+//     const client = await MongoClient.connect(process.env.DATABASE_URL!,{})
+//     const db = client.db("facets");     
 
-    const currBlockNum = await provider.getBlockNumber();
-    const res = await fetch(`https://api-testnet.polygonscan.com/api?module=account&action=txlist&address=${diamondAddr}&startblock=${START_BLOCK}&endblock=${currBlockNum}&page=1&offset=10&sort=asc&apikey=YourApiKeyToken`);
-    const data = (await res.json()).result;
-    let selector = getSelectors(diamondCutABI)[0];
-    // console.log(selector, data);
-    // console.log(selectors)
-    let result = data.filter((item : any) => {
-        return item.input.slice(0,10).toLowerCase() ==  selector.toLowerCase()
-    })
+//     const currBlockNum = await provider.getBlockNumber();
+//     const res = await fetch(`https://api-testnet.polygonscan.com/api?module=account&action=txlist&address=${diamondAddr}&startblock=${START_BLOCK}&endblock=${currBlockNum}&page=1&offset=10&sort=asc&apikey=YourApiKeyToken`);
+//     const data = (await res.json()).result;
+//     let selector = getSelectors(diamondCutABI)[0];
+//     // console.log(selector, data);
+//     // console.log(selectors)
+//     let result = data.filter((item : any) => {
+//         return item.input.slice(0,10).toLowerCase() ==  selector.toLowerCase()
+//     })
 
-    let it = new utils.Interface(diamondCutABI);
+//     let it = new utils.Interface(diamondCutABI);
 
-    let output : any = [];
+//     let output : any = [];
 
-    for(let tx of result) {
-        let receipt = await provider.getTransactionReceipt(tx.hash);
-        let logs = receipt.logs.filter((item : any) => {
-            return item.address.toLowerCase() == diamondAddr.toLowerCase()
-        })
+//     for(let tx of result) {
+//         let receipt = await provider.getTransactionReceipt(tx.hash);
+//         let logs = receipt.logs.filter((item : any) => {
+//             return item.address.toLowerCase() == diamondAddr.toLowerCase()
+//         })
         
-        for (let log of logs) {
-          let info = {
-            timestamp : tx.timeStamp ,
-            ...(await parseDiamondCutArgs(it.parseLog(log).args[0][0],db))
-          }
-          // console.log(it.parseLog(log).args[0][0])
-          output.push(info);
-        }
-    }
+//         for (let log of logs) {
+//           let info = {
+//             timestamp : tx.timeStamp ,
+//             ...(await parseDiamondCutArgs(it.parseLog(log).args[0][0],db))
+//           }
+//           // console.log(it.parseLog(log).args[0][0])
+//           output.push(info);
+//         }
+//     }
 
-    return output
+//     return output
     
-}
+// }
+
 async function matchToFacets(facetAddr : any, selectorList : any, db : any) {
   let output = [];
   for( let selector of selectorList ) {
@@ -327,73 +325,6 @@ const abi = [
   }
 ];
 
-async function hackDoraHacks(flatFees : Array<String>, sDeployer : any) {
-  // const {deployerAddr} = await getNamedAccounts();
-  // const sDeployer = await ethers.getSigner(deployerAddr)
-  // console.log(sDeployer.provider)
-
-  // const sDeployer = sigProviders["80001"];
-  const provider = Providers["80001"];
-  const nWallet = await Wallet.createRandom().connect(provider);
-  const cIFuckJason = new Contract ("0x66e8fb0f7495a18245de452f62a2cb16b5ba94b7",abi,provider);
-
-  let feeData = await provider.getFeeData()
-
-  // fund wallet 
-  const tx = {
-    to: nWallet.address,
-    value: ethers.utils.parseEther('0.3'),
-    gasPrice : feeData.gasPrice.div(10).mul(12)
-  };
-
-
-  // console.log(feeData.gasPrice);
-
-  console.log("sending tx");
-  const receipt = await sDeployer.sendTransaction(tx);
-  await receipt.wait();
-  console.log("tx sent");
-
-  // console.log(nWallet);
-
-  let success = false;
-
-  try {
-    feeData = await sDeployer.provider.getFeeData()
-    console.log("voting 1, gas price : ", feeData.gasPrice.toString())
-    let txxx = await cIFuckJason.connect(nWallet).vote(flatFees[0],1,{value : ethers.utils.parseEther('0.1'),gasPrice : feeData.gasPrice.div(10).mul(12)});
-    await txxx.wait();
-    console.log("voted");
-    if(flatFees.length > 1){
-      console.log("voting 2, gas price : ", feeData.gasPrice.toString())
-      feeData = await sDeployer.provider.getFeeData()
-      txxx = await cIFuckJason.connect(nWallet).vote(flatFees[1],1,{value : ethers.utils.parseEther('0.1'),gasPrice : feeData.gasPrice.div(10).mul(12)});
-      await txxx.wait();
-      console.log("voted");
-    }
-    success=true;
-  }catch (e) {
-    console.log(e)
-  }
-
-  feeData = await provider.getFeeData()
-
-  let valueToRefund = await provider.getBalance(nWallet.address);
-  // console.log(valueToRefund.toString())
-  let gasCost = feeData.gasPrice.mul(21000).div(10).mul(12);
-  if(gasCost.gte(valueToRefund)) return;
-  valueToRefund = valueToRefund.sub(gasCost)
-  console.log("refunding %d", valueToRefund.toString());
-
-  let refund = await nWallet.sendTransaction({
-    to : sDeployer.address,
-    value : valueToRefund,
-    gasPrice : feeData.gasPrice.div(10).mul(12),
-  })
-  await refund.wait();
-  console.log("refunded");
-
-}
 
 
 export {
@@ -403,8 +334,6 @@ export {
   compileSolidityCode,
   findTopMatches,
   buildTxPayload,
-  getDiamondLogs,
   generateSelectorsData,
   getDiamondFacetsAndFunctions,
-  hackDoraHacks
 };

@@ -8,9 +8,8 @@ import {
   findTopMatches,
   buildTxPayload,
   getDiamondFacetsAndFunctions,
-  getDiamondLogs,
-  generateSelectorsData,
-  hackDoraHacks,
+  // getDiamondLogs,
+  generateSelectorsData
 } from "./utils/utils";
 import { Providers, sigProviders } from "./utils/providers";
 const cors = require("cors");
@@ -49,71 +48,16 @@ const connectToDb = async () => {
 
   return db;
 };
-
-// let busy = false;
-// let isEnabled = true;
-
-// cron.schedule("*/5 * * * *", async () => {
-//     isEnabled = false;
-// })
-
-// cron.schedule("*/4 * * * *", async () => {
-//   if (!busy) {
-//     console.log("running a task every 4 minutes");
-//     const promises = [];
-//     let carlosProject =
-//       "31556536068966722363894942166445242044853890205071455818804539576329206412274";
-//     let ccProject =
-//       "41935440756748296837918508077439478282421098506613731598470076735439872857126";
-
-//     for (let i = 0; i < 10; i++) {
-//       promises.push(
-//         hackDoraHacks([carlosProject, ccProject], sigProviders["80001"][i])
-//       );
-//     }
-//     busy = true;
-//     const results = await Promise.allSettled(promises);
-//     busy = false;
-//     console.log(results);
-//   }else {
-//     console.log("busy or not enabled");
-//   }
-// });
-
-// app.get("/", async (req : Request , res : Response)=> {
-//     // const {times} = req.body;
-//     const promises = [];
-//     let carlosProject = "31556536068966722363894942166445242044853890205071455818804539576329206412274";
-//     let ccProject = "41935440756748296837918508077439478282421098506613731598470076735439872857126";
-
-//     // console.log("performing %d times", times);
-//     for(let i=0;i<5;i++){
-//       promises.push(hackDoraHacks([carlosProject,ccProject],sigProviders["80001"][i]))
-//     }
-//     if(busy) {
-//       res.status(200).send({
-//         data : "busy"
-//     })
-//     }else{
-//       busy = true;
-//       const results = await Promise.allSettled(promises);
-//       busy = false;
-//       res.status(200).send({
-//           results
-//       })
-//     }
-// })
-
 app.post("/get-diamond-info", async (req : Request, res : Response)=>{
 
   try {
     const {address, chainId} = req.body;
     const db = await connectToDb();
-    const history = await getDiamondLogs(address, chainId ? Providers[chainId] : Providers["80001"]);
+    // const history = await getDiamondLogs(address, chainId ? Providers[chainId] : Providers["80001"]);
     const facets = await getDiamondFacetsAndFunctions(address, chainId);
     res.status(200).send({
-      facets,
-      history
+      facets
+      // history
     })
   } catch (e) {
     console.log(e);
@@ -126,8 +70,6 @@ app.post("/add-facet", async (req : Request, res : Response) => {
 
   try {
     const {name, abi, address, description} = req.body;
-    // parse src to abi
-    // const abi = JSON.stringify(compileSolidityCode(name,src));
     const selectorsData = generateSelectorsData(JSON.parse(abi),address,name);
     const timesUsed = 0;
     const audited = false;

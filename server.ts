@@ -16,7 +16,7 @@ const cors = require("cors");
 var cron = require("node-cron");
 dotenv.config();
 const corsOptions = {
-  origin: "http://localhost:3000", // TODO : Add custom domain
+  origin: `http://localhost:${process.env.FRONTEND_PORT}`, // TODO : Add custom domain
   optionsSuccessStatus: 200,
 };
 

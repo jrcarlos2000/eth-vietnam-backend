@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 import { diamondCutABI, DiamondLoupeFacetABI } from "./abis";
 const solc = require("solc");
 import { MongoClient } from "mongodb";
-import { Providers , sigProviders} from "./providers";
+import { Providers} from "./providers";
 
 function getTimestamp() {
   return Math.floor(+new Date() / 1000);

@@ -11,7 +11,7 @@ import {
   // getDiamondLogs,
   generateSelectorsData
 } from "./utils/utils";
-import { Providers, sigProviders } from "./utils/providers";
+import { Providers } from "./utils/providers";
 const cors = require("cors");
 var cron = require("node-cron");
 dotenv.config();
